@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: telegram-roulette-bot
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -k uvicorn.workers.UvicornWorker app.main:app --timeout 30
+    autoDeploy: true
