@@ -1,44 +1,22 @@
-from __future__ import annotations
-
-from sqlalchemy.ext.asyncio import (
-    create_async_engine,
-    async_sessionmaker,
-    AsyncSession,
-)
-from sqlalchemy.orm import DeclarativeBase
+import asyncpg
 from app.config import settings
 
 
-class Base(DeclarativeBase):
-    pass
+class Database:
+    pool: asyncpg.Pool | None = None
 
 
-def _normalize_db_url(url: str) -> str:
-    """
-    Normalize DATABASE_URL for async SQLAlchemy + psycopg
-    """
-    url = url.strip()
-
-    if url.startswith("postgres://"):
-        url = "postgresql://" + url[len("postgres://"):]
-
-    if url.startswith("postgresql://"):
-        url = "postgresql+psycopg://" + url[len("postgresql://"):]
-
-    if url.startswith("postgresql+asyncpg://"):
-        url = "postgresql+psycopg://" + url[len("postgresql+asyncpg://"):]
-
-    return url
+db = Database()
 
 
-engine = create_async_engine(
-    _normalize_db_url(settings.database_url),
-    echo=False,
-    pool_pre_ping=True,
-)
+async def connect_db():
+    db.pool = await asyncpg.create_pool(
+        dsn=settings.DATABASE_URL,
+        min_size=1,
+        max_size=5,
+    )
 
-AsyncSessionLocal = async_sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
+
+async def close_db():
+    if db.pool:
+        await db.pool.close()
